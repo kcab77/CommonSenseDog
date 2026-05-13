@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
     }))
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_KEY}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -80,14 +80,22 @@ export async function POST(req: NextRequest) {
     )
 
     const data = await response.json()
+
+    if (!response.ok) {
+      console.error('Gemini error:', JSON.stringify(data))
+      return NextResponse.json({ error: data?.error?.message || 'Gemini API error', debug: data }, { status: 500 })
+    }
+
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || ''
 
     if (!text) {
-      return NextResponse.json({ error: 'No response from AI' }, { status: 500 })
+      console.error('Empty Gemini response:', JSON.stringify(data))
+      return NextResponse.json({ error: 'No response from AI', debug: data }, { status: 500 })
     }
 
     return NextResponse.json({ message: text })
   } catch (e) {
-    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+    console.error('Chat route error:', e)
+    return NextResponse.json({ error: String(e) }, { status: 500 })
   }
 }
