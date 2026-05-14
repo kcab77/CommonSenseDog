@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { searchKnowledge } from '@/lib/pinecone'
 
 const SYSTEM_PROMPT = `You are the Common Sense Dog AI assistant — a holistic, nutrition-first pet health advisor for dog owners who want natural, research-backed guidance without defaulting to pharmaceuticals or generic vet advice.
 
@@ -56,7 +57,12 @@ export async function POST(req: NextRequest) {
   try {
     const { messages, dogProfile } = await req.json()
 
+    const lastUserMessage = messages.filter((m: { role: string }) => m.role === 'user').slice(-1)[0]?.content || ''
+    const knowledgeChunks = await searchKnowledge(lastUserMessage).catch(() => [])
     let systemText = SYSTEM_PROMPT
+    if (knowledgeChunks.length > 0) {
+      systemText += `\n\nKYLE'S RESEARCH NOTES (use these to give more specific answers):\n${knowledgeChunks.map((k, i) => `${i + 1}. ${k}`).join('\n')}`
+    }
     if (dogProfile?.dog_name) {
       systemText += `\n\nThe user's dog:\n- Name: ${dogProfile.dog_name}\n- Breed: ${dogProfile.breed || 'not specified'}\n- Age: ${dogProfile.age || 'not specified'}\n- Current diet: ${dogProfile.diet || 'not specified'}\n- Health issues/concerns: ${dogProfile.health_issues || 'none mentioned'}\n\nAddress the dog by name naturally where relevant.`
     }
