@@ -5,7 +5,7 @@ const index = pc.index(process.env.PINECONE_INDEX || 'dog-knowledge-database')
 
 export async function embedText(text: string): Promise<number[]> {
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${process.env.GEMINI_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${process.env.GEMINI_KEY}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -18,7 +18,7 @@ export async function embedText(text: string): Promise<number[]> {
 
 export async function upsertKnowledge(id: string, text: string, metadata: Record<string, string> = {}) {
   const values = await embedText(text)
-  await index.upsert([{ id, values, metadata: { text, ...metadata } }])
+  await index.upsert({ records: [{ id, values, metadata: { text, ...metadata } }] })
 }
 
 export async function searchKnowledge(query: string, topK = 5): Promise<string[]> {
